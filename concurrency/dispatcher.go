@@ -12,6 +12,7 @@ type disp struct {
 	Queue    JobQueue   // this is the shared JobPool between the workers
 	Jobs     int
 	wg       sync.WaitGroup // wating group
+	loop     bool           // if loop is set we dont' want to use  wating group
 	jobFunc  JobFuncType
 }
 
@@ -21,6 +22,7 @@ func NewDispather(num int, jobFunc JobFuncType) *disp {
 		WorkChan: make(JobChannel),
 		Queue:    make(JobQueue),
 		//wg:		  make(sync.WaitGroup),
+		loop:    false,
 		Jobs:    0,
 		jobFunc: jobFunc,
 	}
@@ -31,7 +33,11 @@ func (d *disp) Start() *disp {
 	//wss := reflect.ValueOf(ws)
 	for i := 0; i < l; i++ {
 		wrk := Worker{i, make(JobChannel), d.Queue, make(chan struct{})}
-		wrk.Start(&d.wg, d.jobFunc)
+		if d.loop {
+			wrk.LoopStart(d.jobFunc)
+		} else {
+			wrk.Start(&d.wg, d.jobFunc)
+		}
 		d.Workers[i] = &wrk
 	}
 	go d.process()
@@ -49,11 +55,14 @@ func (d *disp) process() {
 }
 
 func (d *disp) Wait() {
-	d.wg.Wait()
+	if !d.loop {
+		d.wg.Wait()
+	}
 }
 
 func (d *disp) SubmitChan(channel JobChannel) {
 	d.WorkChan = channel
+	d.loop = true
 }
 
 // TODO: add generator but handle the count

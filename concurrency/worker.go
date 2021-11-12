@@ -26,3 +26,18 @@ func (wr *Worker) Start(wg *sync.WaitGroup, jobFunc JobFuncType) {
 		}
 	}()
 }
+
+func (wr *Worker) LoopStart(jobFunc JobFuncType) {
+	go func() {
+		for {
+			wr.Queue <- wr.JobChan
+			select {
+			case job := <-wr.JobChan:
+				jobFunc(job, wr.ID)
+			case <-wr.Quit:
+				close(wr.JobChan)
+				return
+			}
+		}
+	}()
+}

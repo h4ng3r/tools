@@ -1,7 +1,6 @@
 package concurrency
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -35,10 +34,8 @@ func (d *disp) Start() *disp {
 	for i := 0; i < l; i++ {
 		wrk := Worker{i, make(JobChannel), d.Queue, make(chan struct{})}
 		if d.loop {
-			fmt.Println("LoopStart")
 			wrk.LoopStart(d.jobFunc)
 		} else {
-			fmt.Println("Start")
 			wrk.Start(&d.wg, d.jobFunc)
 		}
 		d.Workers[i] = &wrk
